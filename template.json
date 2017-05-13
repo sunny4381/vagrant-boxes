@@ -1,0 +1,71 @@
+{
+  "variables": {
+    "os": "centos7",
+    "guest_os_type": "RedHat_64",
+    "iso_url": "http://ftp.iij.ad.jp/pub/linux/centos/7.3.1611/isos/x86_64/CentOS-7-x86_64-Minimal-1611.iso",
+    "iso_checksum": "71a7aa147877b413497cdff5b1e0aa5bc0c9484f",
+    "iso_checksum_type": "sha1",
+    "memory": "1024",
+    "arch": "x86_64"
+  },
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -E -S bash '{{.Path}}'",
+      "environment_vars": [
+        "os={{user `os`}}",
+        "arch={{user `arch`}}"
+      ],
+      "override": {
+        "virtualbox-iso": {
+          "scripts": [
+            "scripts/update.sh",
+            "scripts/base.sh",
+            "scripts/vagrant.sh",
+            "scripts/virtualbox.sh",
+            "scripts/cleanup.sh",
+            "scripts/zerodisk.sh"
+          ]
+        }
+      }
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "vagrant",
+      "override": {
+        "virtualbox": {
+          "output": "{{user `os`}}-vagrant-virtualbox-{{user `arch`}}.box"
+        }
+      }
+    }
+  ],
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "boot_command": [
+        "<tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter><wait>"
+      ],
+      "boot_wait": "10s",
+      "disk_size": 15195,
+      "guest_os_type": "{{user `guest_os_type`}}",
+      "http_directory": "http",
+      "iso_checksum": "{{user `iso_checksum`}}",
+      "iso_checksum_type": "{{user `iso_checksum_type`}}",
+      "iso_url": "{{user `iso_url`}}",
+      "ssh_username": "vagrant",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "10000s",
+      "ssh_pty": true,
+      "shutdown_command": "echo '/sbin/halt -h -p' > /tmp/shutdown.sh; echo 'vagrant'|sudo -S sh '/tmp/shutdown.sh'",
+      "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+      "virtualbox_version_file": ".vbox_version",
+      "vboxmanage": [
+        [ "modifyvm", "{{.Name}}", "--memory", "{{user `memory`}}" ],
+        [ "modifyvm", "{{.Name}}", "--cpus", "1" ],
+        [ "modifyvm", "{{.Name}}", "--paravirtprovider", "kvm" ]
+      ]
+    }
+  ]
+}
